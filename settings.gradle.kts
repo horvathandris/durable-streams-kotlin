@@ -1,0 +1,11 @@
+dependencyResolutionManagement {
+    @Suppress("UnstableApiUsage")
+    repositories {
+        mavenCentral()
+    }
+}
+
+rootProject.name = "durable-streams-kotlin"
+
+include("durable-streams-server-core")
+include("durable-streams-server-ktor")
