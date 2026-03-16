@@ -28,7 +28,7 @@ interface Store {
     /**
      * Creates a new stream, or returns the stream if it
      * exists with the same config (idempotent).
-     * @throws StreamExistsException if stream exists with different config.
+     * @throws com.github.horvathandris.durablestreams.StreamExistsException if stream exists with different config.
      */
     fun create(path: Path, options: CreateOptions): CreateStreamResult
 
@@ -43,7 +43,7 @@ interface Store {
     fun has(path: Path): Boolean
 
     /**
-     * @throws StreamNotFoundException if no stream exists for the path.
+     * @throws com.github.horvathandris.durablestreams.StreamNotFoundException if no stream exists for the path.
      */
     fun delete(path: Path)
 

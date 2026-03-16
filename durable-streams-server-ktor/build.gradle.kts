@@ -9,6 +9,8 @@ repositories {
 }
 
 dependencies {
+    implementation(project(":durable-streams-server-core"))
+
     implementation(libs.ktor.server.core)
 
     testImplementation(kotlin("test"))

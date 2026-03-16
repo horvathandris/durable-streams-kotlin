@@ -9,3 +9,4 @@ rootProject.name = "durable-streams-kotlin"
 
 include("durable-streams-server-core")
 include("durable-streams-server-ktor")
+include("durable-streams-server-ktor-example")

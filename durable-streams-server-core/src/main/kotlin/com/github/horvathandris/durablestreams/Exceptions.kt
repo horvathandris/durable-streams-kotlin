@@ -1,4 +1,4 @@
-package com.github.horvathandris.durablestreams.store
+package com.github.horvathandris.durablestreams
 
 class StreamExistsException : Exception()
 
