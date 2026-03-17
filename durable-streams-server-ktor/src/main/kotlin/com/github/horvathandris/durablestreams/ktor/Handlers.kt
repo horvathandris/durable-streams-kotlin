@@ -1,6 +1,7 @@
 package com.github.horvathandris.durablestreams.ktor
 
 import com.github.horvathandris.durablestreams.StreamExistsException
+import com.github.horvathandris.durablestreams.StreamNotFoundException
 import com.github.horvathandris.durablestreams.http.StreamHttpHeaders
 import com.github.horvathandris.durablestreams.stream.store.CreateOptions
 import com.github.horvathandris.durablestreams.stream.store.Store
@@ -88,4 +89,13 @@ internal suspend fun ApplicationCall.handleHead(path: String, store: Store) {
   }
 
   respond(HttpStatusCode.OK)
+}
+
+internal suspend fun ApplicationCall.handleDelete(path: String, store: Store) {
+  try {
+    store.delete(path)
+    respond(HttpStatusCode.NoContent)
+  } catch (_: StreamNotFoundException) {
+    respond(HttpStatusCode.NotFound, "Stream not found")
+  }
 }

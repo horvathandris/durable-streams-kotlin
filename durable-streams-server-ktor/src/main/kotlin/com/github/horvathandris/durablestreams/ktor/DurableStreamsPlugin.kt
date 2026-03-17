@@ -30,6 +30,7 @@ val DurableStreamsPlugin = createRouteScopedPlugin(
           HttpMethod.Options -> call.handleOptions()
           HttpMethod.Put -> call.handleCreate(path, store)
           HttpMethod.Head -> call.handleHead(path, store)
+          HttpMethod.Delete -> call.handleDelete(path, store)
         }
       }
     }
