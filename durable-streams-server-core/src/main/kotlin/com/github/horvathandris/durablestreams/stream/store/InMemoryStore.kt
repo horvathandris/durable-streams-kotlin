@@ -3,15 +3,18 @@ package com.github.horvathandris.durablestreams.stream.store
 import com.github.horvathandris.durablestreams.StreamExistsException
 import com.github.horvathandris.durablestreams.StreamNotFoundException
 import com.github.horvathandris.durablestreams.stream.Message
+import com.github.horvathandris.durablestreams.stream.Offset
 import com.github.horvathandris.durablestreams.stream.StreamMetadata
 import com.github.horvathandris.durablestreams.stream.configMatches
 import com.github.horvathandris.durablestreams.stream.isExpired
-import com.github.horvathandris.durablestreams.stream.zeroOffset
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlin.time.Clock
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 class InMemoryStore : Store {
+
+  private val logger = KotlinLogging.logger {}
 
   data class InMemoryStream(
     val metadata: StreamMetadata,
@@ -25,6 +28,7 @@ class InMemoryStore : Store {
     path: Path,
     options: CreateOptions,
   ): CreateStreamResult = mutex.withLock {
+    logger.info { "Creating stream for path: $path" }
     streams[path]?.let { existing ->
       when {
         existing.metadata.isExpired() -> streams.remove(path)
@@ -37,7 +41,7 @@ class InMemoryStore : Store {
     val metadata = StreamMetadata(
       path = path,
       contentType = options.contentType,
-      currentOffset = zeroOffset(),
+      currentOffset = Offset.Zero,
       ttlSeconds = options.ttlSeconds,
       expiresAt = options.expiresAt,
       createdAt = Clock.System.now(),
@@ -48,6 +52,7 @@ class InMemoryStore : Store {
 
     // TODO: handle initial data
 
+    logger.info { "Created stream for path: $path" }
     CreateStreamResult(metadata, newlyCreated = true)
   }
 
@@ -60,6 +65,7 @@ class InMemoryStore : Store {
     get(path) != null
 
   override suspend fun delete(path: Path): Unit = mutex.withLock {
+    logger.info { "Deleting stream for path: $path" }
     streams.remove(path) ?: throw StreamNotFoundException()
   }
 

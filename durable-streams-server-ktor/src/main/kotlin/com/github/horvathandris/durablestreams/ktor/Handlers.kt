@@ -1,10 +1,14 @@
 package com.github.horvathandris.durablestreams.ktor
 
+import com.github.horvathandris.durablestreams.InvalidOffsetException
 import com.github.horvathandris.durablestreams.StreamExistsException
 import com.github.horvathandris.durablestreams.StreamNotFoundException
+import com.github.horvathandris.durablestreams.http.LiveMode
 import com.github.horvathandris.durablestreams.http.StreamHttpHeaders
+import com.github.horvathandris.durablestreams.stream.Offset
 import com.github.horvathandris.durablestreams.stream.store.CreateOptions
 import com.github.horvathandris.durablestreams.stream.store.Store
+import com.github.horvathandris.durablestreams.stream.toOffset
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -64,7 +68,10 @@ internal suspend fun ApplicationCall.handleCreate(
   }
 }
 
-internal suspend fun ApplicationCall.handleHead(path: String, store: Store) {
+internal suspend fun ApplicationCall.handleHead(
+  path: String,
+  store: Store,
+) {
   val metadata = store.get(path)
 
   if (metadata == null) {
@@ -91,11 +98,50 @@ internal suspend fun ApplicationCall.handleHead(path: String, store: Store) {
   respond(HttpStatusCode.OK)
 }
 
-internal suspend fun ApplicationCall.handleDelete(path: String, store: Store) {
+internal suspend fun ApplicationCall.handleDelete(
+  path: String,
+  store: Store,
+) {
   try {
     store.delete(path)
     respond(HttpStatusCode.NoContent)
   } catch (_: StreamNotFoundException) {
     respond(HttpStatusCode.NotFound, "Stream not found")
   }
+}
+
+internal suspend fun ApplicationCall.handleGet(
+  path: String,
+  store: Store,
+) {
+  val metadata = store.get(path) ?: return respond(HttpStatusCode.NotFound)
+
+  val offsetQuery = request.queryParameters["offset"]
+  if (offsetQuery != null && offsetQuery.isEmpty()) {
+    return respond(HttpStatusCode.BadRequest, "Offset cannot be empty")
+  }
+
+  val offset = try {
+    offsetQuery.toOffset()
+  } catch (_: InvalidOffsetException) {
+    return respond(HttpStatusCode.BadRequest, "Invalid offset")
+  }
+
+  val liveModeQuery = request.queryParameters["live"]
+  val liveMode = liveModeQuery?.let {  LiveMode.fromValue(it) }
+  if (liveMode == LiveMode.LongPoll && offsetQuery == null) {
+    return respond(HttpStatusCode.BadRequest, "Offset required for long-poll mode")
+  }
+  if (liveMode == LiveMode.SSE && offsetQuery == null) {
+    return respond(HttpStatusCode.BadRequest, "Offset required for SSE mode")
+  }
+
+  if (liveMode == LiveMode.SSE) {
+    // TODO: handle SSE
+    return respond(HttpStatusCode.NotImplemented)
+  }
+
+  val effectiveOffset = if (offset == Offset.Now) metadata.currentOffset else offset
+
+  respond(HttpStatusCode.NotImplemented)
 }

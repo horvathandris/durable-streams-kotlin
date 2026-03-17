@@ -10,6 +10,7 @@ repositories {
 
 dependencies {
     implementation(libs.kotlinxCoroutines)
+    implementation(libs.kotlin.logging)
 
     testImplementation(kotlin("test"))
 }

@@ -3,6 +3,7 @@
 # This file is expected to be part of source control.
 com.typesafe:config:1.4.5=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
 io.github.java-diff-utils:java-diff-utils:4.12=kotlinInternalAbiValidation
+io.github.oshai:kotlin-logging-jvm:8.0.01=runtimeClasspath,testRuntimeClasspath
 io.ktor:ktor-events-jvm:3.4.1=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
 io.ktor:ktor-events:3.4.1=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
 io.ktor:ktor-http-cio-jvm:3.4.1=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
