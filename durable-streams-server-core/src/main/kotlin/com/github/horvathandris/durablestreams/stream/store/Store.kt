@@ -1,5 +1,6 @@
 package com.github.horvathandris.durablestreams.stream.store
 
+import com.github.horvathandris.durablestreams.stream.Producer
 import com.github.horvathandris.durablestreams.stream.StreamMetadata
 import kotlin.time.Instant
 
@@ -51,5 +52,7 @@ interface Store {
      * @throws com.github.horvathandris.durablestreams.StreamNotFoundException if no stream exists for the path.
      */
     suspend fun delete(path: Path)
+
+    suspend fun close(path: Path, producer: Producer?)
 
 }

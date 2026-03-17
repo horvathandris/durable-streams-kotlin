@@ -1,12 +1,18 @@
 package com.github.horvathandris.durablestreams.ktor
 
 import com.github.horvathandris.durablestreams.InvalidOffsetException
+import com.github.horvathandris.durablestreams.InvalidProducerEpochException
+import com.github.horvathandris.durablestreams.InvalidProducerSeqException
+import com.github.horvathandris.durablestreams.MissingProducerHeadersException
 import com.github.horvathandris.durablestreams.StreamExistsException
 import com.github.horvathandris.durablestreams.StreamNotFoundException
 import com.github.horvathandris.durablestreams.http.LiveMode
+import com.github.horvathandris.durablestreams.http.ProducerHttpHeaders
 import com.github.horvathandris.durablestreams.http.StreamHttpHeaders
 import com.github.horvathandris.durablestreams.stream.Offset
+import com.github.horvathandris.durablestreams.stream.Producer
 import com.github.horvathandris.durablestreams.stream.store.CreateOptions
+import com.github.horvathandris.durablestreams.stream.store.Path
 import com.github.horvathandris.durablestreams.stream.store.Store
 import com.github.horvathandris.durablestreams.stream.toOffset
 import io.ktor.http.ContentType
@@ -26,7 +32,7 @@ internal suspend fun ApplicationCall.handleOptions() {
 }
 
 internal suspend fun ApplicationCall.handleCreate(
-  path: String,
+  path: Path,
   store: Store,
 ) {
   val ttlSeconds = request.header(StreamHttpHeaders.StreamTTL)?.toLongOrNull()
@@ -69,7 +75,7 @@ internal suspend fun ApplicationCall.handleCreate(
 }
 
 internal suspend fun ApplicationCall.handleHead(
-  path: String,
+  path: Path,
   store: Store,
 ) {
   val metadata = store.get(path)
@@ -99,7 +105,7 @@ internal suspend fun ApplicationCall.handleHead(
 }
 
 internal suspend fun ApplicationCall.handleDelete(
-  path: String,
+  path: Path,
   store: Store,
 ) {
   try {
@@ -111,7 +117,7 @@ internal suspend fun ApplicationCall.handleDelete(
 }
 
 internal suspend fun ApplicationCall.handleGet(
-  path: String,
+  path: Path,
   store: Store,
 ) {
   val metadata = store.get(path) ?: return respond(HttpStatusCode.NotFound)
@@ -144,4 +150,35 @@ internal suspend fun ApplicationCall.handleGet(
   val effectiveOffset = if (offset == Offset.Now) metadata.currentOffset else offset
 
   respond(HttpStatusCode.NotImplemented)
+}
+
+internal suspend fun ApplicationCall.handlePost(
+  path: Path,
+  store: Store,
+) {
+  val metadata = store.get(path) ?: return respond(HttpStatusCode.NotFound)
+
+  val producer = try {
+    Producer.fromHeaders(
+      request.header(ProducerHttpHeaders.ProducerId)?.takeIf { it.isNotBlank() },
+      request.header(ProducerHttpHeaders.ProducerEpoch)?.takeIf { it.isNotBlank() },
+      request.header(ProducerHttpHeaders.ProducerSeq)?.takeIf { it.isNotBlank() },
+    )
+  } catch (e: Exception) {
+    return when (e) {
+      is MissingProducerHeadersException,
+      is InvalidProducerEpochException,
+      is InvalidProducerSeqException ->
+        respond(HttpStatusCode.BadRequest, e.message!!)
+      else ->
+        respond(HttpStatusCode.InternalServerError)
+    }
+  }
+
+  val closeStream = request.header(StreamHttpHeaders.StreamClosed) === "true"
+  val body = receive<ByteArray>()
+  if (body.isEmpty() && closeStream) {
+
+    // TODO: close stream
+  }
 }
