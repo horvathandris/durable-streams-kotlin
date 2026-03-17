@@ -9,5 +9,7 @@ repositories {
 }
 
 dependencies {
+    implementation(libs.kotlinxCoroutines)
+
     testImplementation(kotlin("test"))
 }

@@ -1,14 +1,19 @@
-package com.github.horvathandris.durablestreams.store
+package com.github.horvathandris.durablestreams.stream.store
 
 import com.github.horvathandris.durablestreams.stream.StreamMetadata
+import kotlin.time.Instant
 
 typealias Path = String
 
 /**
  * Options for creating a stream.
  */
-data class CreateOptions(
-    val contentType: String,
+class CreateOptions(
+    val contentType: String = "application/octet-stream",
+    val ttlSeconds: Long?,
+    val expiresAt: Instant?,
+    val initialData: ByteArray,
+    val closed: Boolean,
 )
 
 /**
@@ -16,7 +21,7 @@ data class CreateOptions(
  *                     or it existed with matching config.
  */
 data class CreateStreamResult(
-    val streamMetadata: StreamMetadata,
+    val metadata: StreamMetadata,
     val newlyCreated: Boolean,
 )
 
@@ -30,7 +35,7 @@ interface Store {
      * exists with the same config (idempotent).
      * @throws com.github.horvathandris.durablestreams.StreamExistsException if stream exists with different config.
      */
-    fun create(path: Path, options: CreateOptions): CreateStreamResult
+    suspend fun create(path: Path, options: CreateOptions): CreateStreamResult
 
     /**
      * Returns the metadata for the stream if a stream exists for the path.
@@ -45,6 +50,6 @@ interface Store {
     /**
      * @throws com.github.horvathandris.durablestreams.StreamNotFoundException if no stream exists for the path.
      */
-    fun delete(path: Path)
+    suspend fun delete(path: Path)
 
 }
