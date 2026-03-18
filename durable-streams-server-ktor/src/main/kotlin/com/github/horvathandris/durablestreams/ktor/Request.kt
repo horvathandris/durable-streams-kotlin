@@ -11,7 +11,7 @@ import io.ktor.util.toMap
 internal suspend fun ApplicationCall.toRequest(): Request {
   return Request(
     uri = URI.parse(request.uri),
-    headers = Headers(request.headers.toMap().toMutableMap()),
+    headers = Headers(request.headers.toMap()),
     data = receive<ByteArray>(),
   )
 }

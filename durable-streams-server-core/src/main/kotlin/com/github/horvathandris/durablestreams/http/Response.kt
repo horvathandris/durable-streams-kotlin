@@ -2,13 +2,13 @@ package com.github.horvathandris.durablestreams.http
 
 class Response(
   val status: Int,
-  val headers: Headers = Headers.of(),
+  val headers: Headers = Headers(),
   val data: ByteArray?,
 ) {
 
   constructor(
     status: Int,
-    headers: Headers = Headers.of(),
+    headers: Headers = Headers(),
     data: String,
   ) : this(
     status = status,
@@ -18,7 +18,7 @@ class Response(
 
   constructor(
     status: Int,
-    headers: Headers = Headers.of(),
+    headers: Headers = Headers(),
   ) : this(
     status = status,
     headers = headers,

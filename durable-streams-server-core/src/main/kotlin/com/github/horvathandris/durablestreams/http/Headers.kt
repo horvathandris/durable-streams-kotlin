@@ -1,8 +1,11 @@
 package com.github.horvathandris.durablestreams.http
 
+@Suppress("ConstPropertyName")
 data class Headers(
-  private val map: MutableMap<String, List<String>>,
+  private val map: Map<String, List<String>>,
 ) {
+
+  constructor(): this(mapOf())
 
   object Http {
     const val ContentType = "Content-Type"
@@ -32,24 +35,29 @@ data class Headers(
 
   companion object {
 
-    fun of(vararg pairs: Pair<String, String>): Headers =
-      Headers(
-        pairs.groupBy(
-          { it.first.lowercase() },
-          { it.second }
-        )
-          .toMutableMap()
-      )
+    fun builder(): HeadersBuilder =
+      HeadersBuilder()
+
   }
 
   operator fun get(name: String): List<String> =
     map[name.lowercase()] ?: emptyList()
 
-  operator fun set(index: String, value: String) {
-    map[index] = listOf(value)
-  }
-
-  operator fun iterator(): MutableIterator<MutableMap.MutableEntry<String, List<String>>> =
+  operator fun iterator(): Iterator<Map.Entry<String, List<String>>> =
     map.iterator()
+
+  class HeadersBuilder {
+
+    private val map: MutableMap<String, MutableList<String>> = mutableMapOf()
+
+    operator fun set(key: String, value: String): HeadersBuilder {
+      map[key.lowercase()] = mutableListOf(value)
+      return this
+    }
+
+    fun build(): Headers =
+      Headers(map)
+
+  }
 
 }

@@ -21,10 +21,9 @@ class StreamHandler(
     val options = CreateOptions.fromRequest(request)
     try {
       val result = store.create(request.uri.path, options)
-      val headers = Headers.of(
-        Headers.Http.ContentType to result.metadata.contentType,
-        Headers.Stream.NextOffset to result.metadata.currentOffset.toString(),
-      )
+      val headers = Headers.builder()
+      headers[Headers.Http.ContentType] = result.metadata.contentType
+      headers[Headers.Stream.NextOffset] = result.metadata.currentOffset.toString()
       if (result.metadata.closed) {
         headers[Headers.Stream.Closed] = "true"
       }
@@ -36,12 +35,12 @@ class StreamHandler(
         headers[Headers.Http.Location] = "$scheme://$host${request.uri.path}"
         return Response(
           status = 201,
-          headers = headers,
+          headers = headers.build(),
         )
       }
       return Response(
         status = 200,
-        headers = headers,
+        headers = headers.build(),
       )
     } catch (e: StreamExistsException) {
       return Response(
@@ -54,11 +53,10 @@ class StreamHandler(
   fun getStream(request: Request): Response {
     val metadata = store.get(request.uri.path) ?: return Response(status = 404)
 
-    val headers = Headers.of(
-      Headers.Http.ContentType to metadata.contentType,
-      Headers.Stream.NextOffset to metadata.currentOffset.toString(),
-      Headers.Http.CacheControl to "no-store",
-    )
+    val headers = Headers.builder()
+    headers[Headers.Http.ContentType] = metadata.contentType
+    headers[Headers.Stream.NextOffset] = metadata.currentOffset.toString()
+    headers[Headers.Http.CacheControl] = "no-store"
     metadata.ttlSeconds?.let {
       headers[Headers.Stream.TTL] = it.toString()
     }
@@ -71,7 +69,7 @@ class StreamHandler(
 
     return Response(
       status = 200,
-      headers = headers,
+      headers = headers.build(),
     )
   }
 
