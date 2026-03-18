@@ -10,7 +10,6 @@ import io.ktor.http.HttpMethod
 import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.request.httpMethod
 import io.ktor.server.response.header
-import io.ktor.server.response.respond
 import io.ktor.server.routing.route
 
 class DurableStreamsPluginConfiguration {
@@ -36,7 +35,7 @@ val DurableStreamsPlugin = createRouteScopedPlugin(
           HttpMethod.Post -> handler.appendToStream(request)
           else -> Response(status = 405)
         }
-        call.respond(response)
+        call.respondWith(response)
       }
     }
   }
