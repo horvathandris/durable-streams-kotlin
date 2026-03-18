@@ -1,15 +1,16 @@
 package com.github.horvathandris.durablestreams.ktor
 
-import com.github.horvathandris.durablestreams.http.ProducerHttpHeaders
-import com.github.horvathandris.durablestreams.http.StreamHttpHeaders
+import com.github.horvathandris.durablestreams.http.Headers
+import com.github.horvathandris.durablestreams.http.Response
+import com.github.horvathandris.durablestreams.stream.handler.StreamHandler
 import com.github.horvathandris.durablestreams.stream.store.InMemoryStore
 import com.github.horvathandris.durablestreams.stream.store.Store
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.request.httpMethod
-import io.ktor.server.request.path
 import io.ktor.server.response.header
+import io.ktor.server.response.respond
 import io.ktor.server.routing.route
 
 class DurableStreamsPluginConfiguration {
@@ -20,20 +21,22 @@ val DurableStreamsPlugin = createRouteScopedPlugin(
   name = "DurableStreamsPlugin",
   createConfiguration = ::DurableStreamsPluginConfiguration,
 ) {
-  val store = pluginConfig.store
+  val handler = StreamHandler(pluginConfig.store)
 
   route?.apply {
     route("{...}") {
       handle {
-        val path = call.request.path()
-        when (call.request.httpMethod) {
-          HttpMethod.Options -> call.handleOptions()
-          HttpMethod.Put -> call.handleCreate(path, store)
-          HttpMethod.Head -> call.handleHead(path, store)
-          HttpMethod.Delete -> call.handleDelete(path, store)
-          HttpMethod.Get -> call.handleGet(path, store)
-          HttpMethod.Post -> call.handlePost(path, store)
+        val request = call.toRequest()
+        val response = when (call.request.httpMethod) {
+          HttpMethod.Options -> Response(status = 204)
+          HttpMethod.Put -> handler.createStream(request)
+          HttpMethod.Head -> handler.getStream(request)
+          HttpMethod.Delete -> handler.deleteStream(request)
+          HttpMethod.Get -> handler.readStream(request)
+          HttpMethod.Post -> handler.appendToStream(request)
+          else -> Response(status = 405)
         }
+        call.respond(response)
       }
     }
   }
@@ -58,29 +61,29 @@ val DurableStreamsPlugin = createRouteScopedPlugin(
         HttpHeaders.AccessControlAllowHeaders,
         listOf(
           HttpHeaders.ContentType,
-          StreamHttpHeaders.StreamSeq,
-          StreamHttpHeaders.StreamTTL,
-          StreamHttpHeaders.StreamExpiresAt,
-          StreamHttpHeaders.StreamClosed,
+          Headers.Stream.Seq,
+          Headers.Stream.TTL,
+          Headers.Stream.ExpiresAt,
+          Headers.Stream.Closed,
           HttpHeaders.IfNoneMatch,
-          ProducerHttpHeaders.ProducerId,
-          ProducerHttpHeaders.ProducerEpoch,
-          ProducerHttpHeaders.ProducerSeq,
+          Headers.Producer.Id,
+          Headers.Producer.Epoch,
+          Headers.Producer.Seq,
         )
           .joinToString(", ")
       )
       header(
         HttpHeaders.AccessControlExposeHeaders,
         listOf(
-          StreamHttpHeaders.StreamNextOffset,
-          StreamHttpHeaders.StreamCursor,
-          StreamHttpHeaders.StreamUpToDate,
-          StreamHttpHeaders.StreamClosed,
+          Headers.Stream.NextOffset,
+          Headers.Stream.Cursor,
+          Headers.Stream.UpToDate,
+          Headers.Stream.Closed,
           HttpHeaders.ETag,
-          ProducerHttpHeaders.ProducerEpoch,
-          ProducerHttpHeaders.ProducerSeq,
-          ProducerHttpHeaders.ProducerExpectedSeq,
-          ProducerHttpHeaders.ProducerReceivedSeq,
+          Headers.Producer.Epoch,
+          Headers.Producer.Seq,
+          Headers.Producer.ExpectedSeq,
+          Headers.Producer.ReceivedSeq,
         )
           .joinToString(", ")
       )

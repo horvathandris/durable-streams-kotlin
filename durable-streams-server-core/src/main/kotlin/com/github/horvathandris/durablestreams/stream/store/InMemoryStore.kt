@@ -4,6 +4,7 @@ import com.github.horvathandris.durablestreams.StreamExistsException
 import com.github.horvathandris.durablestreams.StreamNotFoundException
 import com.github.horvathandris.durablestreams.stream.Message
 import com.github.horvathandris.durablestreams.stream.Offset
+import com.github.horvathandris.durablestreams.stream.Producer
 import com.github.horvathandris.durablestreams.stream.StreamMetadata
 import com.github.horvathandris.durablestreams.stream.configMatches
 import com.github.horvathandris.durablestreams.stream.isExpired
@@ -67,6 +68,13 @@ class InMemoryStore : Store {
   override suspend fun delete(path: Path): Unit = mutex.withLock {
     logger.info { "Deleting stream for path: $path" }
     streams.remove(path) ?: throw StreamNotFoundException()
+  }
+
+  override suspend fun close(
+    path: Path,
+    producer: Producer?
+  ) {
+    TODO("Not yet implemented")
   }
 
 }

@@ -1,8 +1,7 @@
 package com.github.horvathandris.durablestreams.stream
 
-import com.github.horvathandris.durablestreams.InvalidProducerEpochException
-import com.github.horvathandris.durablestreams.InvalidProducerSeqException
-import com.github.horvathandris.durablestreams.MissingProducerHeadersException
+import com.github.horvathandris.durablestreams.InvalidHeaderException
+import com.github.horvathandris.durablestreams.http.Headers
 
 data class Producer(
   val id: ProducerId,
@@ -13,16 +12,21 @@ data class Producer(
   companion object {
 
     fun fromHeaders(
-      id: String?,
-      epoch: String?,
-      seq: String?,
+      headers: Headers,
     ): Producer? {
-      val providedCount = listOfNotNull(id, epoch, seq).size
-      if (providedCount in 1..2) throw MissingProducerHeadersException()
+      val idHeader = headers[Headers.Producer.Id].firstOrNull()?.takeIf { it.isNotBlank() }
+      val epochHeader = headers[Headers.Producer.Epoch].firstOrNull()?.takeIf { it.isNotBlank() }
+      val seqHeader = headers[Headers.Producer.Seq].firstOrNull()?.takeIf { it.isNotBlank() }
+      val providedCount = listOfNotNull(idHeader, epochHeader, seqHeader).size
+      if (providedCount in 1..2) {
+        throw InvalidHeaderException("all producer headers (Producer-Id, Producer-Epoch, Producer-Seq) must be provided together")
+      }
       if (providedCount == 0) return null
-      val epochLong = epoch?.toLongOrNull() ?: throw InvalidProducerEpochException()
-      val seqLong = seq?.toLongOrNull() ?: throw InvalidProducerSeqException()
-      return Producer(id!!, epochLong, seqLong)
+      val epoch = epochHeader?.toLongOrNull()
+        ?: throw InvalidHeaderException("invalid Producer-Epoch: must be an integer")
+      val seq = seqHeader?.toLongOrNull()
+        ?: throw InvalidHeaderException("invalid Producer-Seq: must be an integer")
+      return Producer(idHeader!!, epoch, seq)
     }
 
   }

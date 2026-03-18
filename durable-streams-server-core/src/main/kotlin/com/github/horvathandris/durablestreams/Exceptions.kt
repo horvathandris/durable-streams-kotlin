@@ -1,16 +1,17 @@
 package com.github.horvathandris.durablestreams
 
-class StreamExistsException : Exception()
+class StreamExistsException(
+  override val message: String = "stream exists with different configuration"
+) : Exception()
 
-class StreamNotFoundException : Exception()
+class StreamNotFoundException(
+  override val message: String = "stream not found"
+) : Exception()
 
-class InvalidOffsetException : Exception()
+class InvalidHeaderException(
+  override val message: String,
+) : Exception()
 
-class MissingProducerHeadersException : Exception() {
-  override val message =
-    "All producer headers (Producer-Id, Producer-Epoch, Producer-Seq) must be provided together"
-}
-
-class InvalidProducerEpochException : Exception()
-
-class InvalidProducerSeqException : Exception()
+class InvalidParameterException(
+  override val message: String,
+) : Exception()

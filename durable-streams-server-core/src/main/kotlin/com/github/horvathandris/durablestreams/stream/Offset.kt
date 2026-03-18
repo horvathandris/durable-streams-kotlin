@@ -1,6 +1,6 @@
 package com.github.horvathandris.durablestreams.stream
 
-import com.github.horvathandris.durablestreams.InvalidOffsetException
+import com.github.horvathandris.durablestreams.InvalidParameterException
 
 /**
  * Represents a position within a stream.
@@ -29,14 +29,23 @@ data class Offset(
  *
  * Returns error for invalid formats.
  */
-fun String?.toOffset(): Offset {
-  if (this.isNullOrBlank() || this == "-1") return Offset.Zero
-  if (this == "now") return Offset.Now
+fun List<String>.toOffset(): Offset {
+  if (this.size > 1) {
+    throw InvalidParameterException("multiple offset parameters not allowed")
+  }
 
-  val parts = this.split("_")
-  if (parts.size != 2) throw InvalidOffsetException()
-  val readSeq = parts[0].toLongOrNull() ?: throw InvalidOffsetException()
-  val bytesOffset = parts[1].toLongOrNull() ?: throw InvalidOffsetException()
+  if (this.isEmpty() || this.first().isBlank()) {
+    throw InvalidParameterException("offset cannot be empty")
+  }
+
+  val value = this.firstOrNull()
+  if (value.isNullOrBlank() || value == "-1") return Offset.Zero
+  if (value == "now") return Offset.Now
+
+  val parts = value.split("_")
+  if (parts.size != 2) throw InvalidParameterException("invalid offset")
+  val readSeq = parts[0].toLongOrNull() ?: throw InvalidParameterException("invalid offset")
+  val bytesOffset = parts[1].toLongOrNull() ?: throw InvalidParameterException("invalid offset")
   return Offset(readSeq, bytesOffset)
 }
 

@@ -1,5 +1,8 @@
 package com.github.horvathandris.durablestreams.stream.store
 
+import com.github.horvathandris.durablestreams.InvalidHeaderException
+import com.github.horvathandris.durablestreams.http.Headers
+import com.github.horvathandris.durablestreams.http.Request
 import com.github.horvathandris.durablestreams.stream.Producer
 import com.github.horvathandris.durablestreams.stream.StreamMetadata
 import kotlin.time.Instant
@@ -13,9 +16,43 @@ class CreateOptions(
     val contentType: String = "application/octet-stream",
     val ttlSeconds: Long?,
     val expiresAt: Instant?,
-    val initialData: ByteArray,
+    val initialData: ByteArray?,
     val closed: Boolean,
-)
+) {
+
+    companion object {
+
+        fun fromRequest(request: Request): CreateOptions {
+            val ttlSecondsHeader = request.headers[Headers.Stream.TTL]
+                .firstOrNull()
+                ?.takeIf { it.isNotBlank() }
+            val expiresAtHeader = request.headers[Headers.Stream.ExpiresAt]
+                .firstOrNull()
+                ?.takeIf { it.isNotBlank() }
+            if (ttlSecondsHeader != null && expiresAtHeader != null) {
+                throw InvalidHeaderException("cannot specify both Stream-TTL and Stream-Expires-At")
+            }
+            val contentType = request.headers[Headers.Http.ContentType]
+                // TODO: need to remove the parameters from content-type
+                .firstOrNull()
+                ?: "application/octet-stream"
+            val ttlSeconds = ttlSecondsHeader?.toLongOrNull()
+                ?: throw InvalidHeaderException("invalid Stream-TTL format")
+            val expiresAt = expiresAtHeader?.let { Instant.parse(it) }
+                ?: throw InvalidHeaderException("invalid Stream-Expires-At format")
+            val closed = request.headers[Headers.Stream.Closed].firstOrNull() == "true"
+            return CreateOptions(
+                contentType = contentType,
+                ttlSeconds = ttlSeconds,
+                expiresAt = expiresAt,
+                initialData = request.data,
+                closed = closed,
+            )
+        }
+
+    }
+
+}
 
 /**
  * @param newlyCreated Whether the stream was newly created,
