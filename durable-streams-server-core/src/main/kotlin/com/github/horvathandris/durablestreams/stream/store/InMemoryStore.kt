@@ -15,7 +15,7 @@ import kotlinx.coroutines.sync.withLock
 
 class InMemoryStore : Store {
 
-  private val logger = KotlinLogging.logger {}
+  private val log = KotlinLogging.logger {}
 
   data class InMemoryStream(
     val metadata: StreamMetadata,
@@ -29,7 +29,7 @@ class InMemoryStore : Store {
     path: Path,
     options: CreateOptions,
   ): CreateStreamResult = mutex.withLock {
-    logger.info { "Creating stream for path: $path" }
+    log.info { "Creating stream for path: $path" }
     streams[path]?.let { existing ->
       when {
         existing.metadata.isExpired() -> streams.remove(path)
@@ -53,7 +53,7 @@ class InMemoryStore : Store {
 
     // TODO: handle initial data
 
-    logger.info { "Created stream for path: $path" }
+    log.info { "Created stream for path: $path" }
     CreateStreamResult(metadata, newlyCreated = true)
   }
 
@@ -66,7 +66,7 @@ class InMemoryStore : Store {
     get(path) != null
 
   override suspend fun delete(path: Path): Unit = mutex.withLock {
-    logger.info { "Deleting stream for path: $path" }
+    log.info { "Deleting stream for path: $path" }
     streams.remove(path) ?: throw StreamNotFoundException()
   }
 

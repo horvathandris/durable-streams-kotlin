@@ -38,6 +38,7 @@ class CreateOptions(
                 ?: "application/octet-stream"
             val ttlSeconds = ttlSecondsHeader?.toLongOrNull()
                 ?: throw InvalidHeaderException("invalid Stream-TTL format")
+            // TODO: check if warning is real
             val expiresAt = expiresAtHeader?.let { Instant.parse(it) }
                 ?: throw InvalidHeaderException("invalid Stream-Expires-At format")
             val closed = request.headers[Headers.Stream.Closed].firstOrNull() == "true"
