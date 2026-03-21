@@ -3,7 +3,9 @@ package com.github.horvathandris.durablestreams.stream.store
 import com.github.horvathandris.durablestreams.InvalidHeaderException
 import com.github.horvathandris.durablestreams.http.Headers
 import com.github.horvathandris.durablestreams.http.Request
+import com.github.horvathandris.durablestreams.stream.Offset
 import com.github.horvathandris.durablestreams.stream.Producer
+import com.github.horvathandris.durablestreams.stream.Seq
 import com.github.horvathandris.durablestreams.stream.StreamMetadata
 import kotlin.time.Instant
 
@@ -36,11 +38,12 @@ class CreateOptions(
                 // TODO: need to remove the parameters from content-type
                 .firstOrNull()
                 ?: "application/octet-stream"
-            val ttlSeconds = ttlSecondsHeader?.toLongOrNull()
-                ?: throw InvalidHeaderException("invalid Stream-TTL format")
-            // TODO: check if warning is real
-            val expiresAt = expiresAtHeader?.let { Instant.parse(it) }
-                ?: throw InvalidHeaderException("invalid Stream-Expires-At format")
+            val ttlSeconds = ttlSecondsHeader?.let {
+                it.toLongOrNull() ?: throw InvalidHeaderException("invalid Stream-TTL format")
+            }
+            val expiresAt = expiresAtHeader?.let {
+                Instant.parseOrNull(it) ?: throw InvalidHeaderException("invalid Stream-Expires-At format")
+            }
             val closed = request.headers[Headers.Stream.Closed].firstOrNull() == "true"
             return CreateOptions(
                 contentType = contentType,
@@ -59,10 +62,38 @@ class CreateOptions(
  * @param newlyCreated Whether the stream was newly created,
  *                     or it existed with matching config.
  */
-data class CreateStreamResult(
+data class CreateResult(
     val metadata: StreamMetadata,
     val newlyCreated: Boolean,
 )
+
+data class CloseResult(
+    val finalOffset: Offset,
+)
+
+data class AppendOptions(
+    val seq: Seq,
+    val contentType: String,
+    val close: Boolean,
+) {
+    companion object {
+
+        fun fromRequest(request: Request): AppendOptions {
+            TODO()
+        }
+
+    }
+}
+
+sealed class AppendResult(
+    val offset: Offset,
+    val duplicate: Boolean,
+) {
+    class StreamClosed(
+        offset: Offset,
+        duplicate: Boolean = false,
+    ) : AppendResult(offset, duplicate)
+}
 
 /**
  * Store is the interface for durable stream storage.
@@ -74,7 +105,7 @@ interface Store {
      * exists with the same config (idempotent).
      * @throws com.github.horvathandris.durablestreams.StreamExistsException if stream exists with different config.
      */
-    suspend fun create(path: Path, options: CreateOptions): CreateStreamResult
+    suspend fun create(path: Path, options: CreateOptions): CreateResult
 
     /**
      * Returns the metadata for the stream if a stream exists for the path.
@@ -91,6 +122,13 @@ interface Store {
      */
     suspend fun delete(path: Path)
 
-    suspend fun close(path: Path, producer: Producer?)
+    suspend fun close(path: Path, producer: Producer?): CloseResult
+
+    suspend fun append(
+        path: Path,
+        data: ByteArray,
+        producer: Producer?,
+        options: AppendOptions,
+    ): AppendResult
 
 }

@@ -1,11 +1,15 @@
 package com.github.horvathandris.durablestreams.http
 
 @Suppress("ConstPropertyName")
-data class Headers(
-  private val map: Map<String, List<String>>,
-) {
+class Headers {
 
-  constructor(): this(mapOf())
+  private val map: Map<String, List<String>>
+
+  constructor() : this(mapOf())
+
+  constructor(map: Map<String, List<String>>) {
+    this.map = map.mapKeys { it.key.lowercase() }
+  }
 
   object Http {
     const val ContentType = "Content-Type"

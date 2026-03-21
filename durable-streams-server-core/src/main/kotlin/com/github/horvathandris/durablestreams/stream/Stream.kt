@@ -10,12 +10,6 @@ typealias ProducerId = String
 typealias Epoch = Long
 typealias Seq = Long
 
-data class ClosedByProducer(
-  val producerId: ProducerId,
-  val epoch: Epoch,
-  val seq: Seq,
-)
-
 data class StreamMetadata(
   val path: Path,
   val contentType: String,
@@ -24,7 +18,7 @@ data class StreamMetadata(
   val expiresAt: Instant?,
   val createdAt: Instant,
   val closed: Boolean,
-  val closedBy: ClosedByProducer? = null,
+  val closedBy: Producer? = null,
 )
 
 fun StreamMetadata.isExpired(): Boolean {

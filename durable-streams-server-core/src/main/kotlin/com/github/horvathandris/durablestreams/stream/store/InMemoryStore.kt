@@ -1,5 +1,6 @@
 package com.github.horvathandris.durablestreams.stream.store
 
+import com.github.horvathandris.durablestreams.InvalidDataException
 import com.github.horvathandris.durablestreams.StreamExistsException
 import com.github.horvathandris.durablestreams.StreamNotFoundException
 import com.github.horvathandris.durablestreams.stream.Message
@@ -28,13 +29,13 @@ class InMemoryStore : Store {
   override suspend fun create(
     path: Path,
     options: CreateOptions,
-  ): CreateStreamResult = mutex.withLock {
+  ): CreateResult = mutex.withLock {
     log.info { "Creating stream for path: $path" }
     streams[path]?.let { existing ->
       when {
         existing.metadata.isExpired() -> streams.remove(path)
         existing.metadata.configMatches(options) ->
-          return@withLock CreateStreamResult(existing.metadata, newlyCreated = false)
+          return@withLock CreateResult(existing.metadata, newlyCreated = false)
         else -> throw StreamExistsException()
       }
     }
@@ -54,7 +55,7 @@ class InMemoryStore : Store {
     // TODO: handle initial data
 
     log.info { "Created stream for path: $path" }
-    CreateStreamResult(metadata, newlyCreated = true)
+    CreateResult(metadata, newlyCreated = true)
   }
 
   override fun get(path: Path): StreamMetadata? =
@@ -72,8 +73,43 @@ class InMemoryStore : Store {
 
   override suspend fun close(
     path: Path,
-    producer: Producer?
-  ) {
+    producer: Producer?,
+  ): CloseResult = mutex.withLock {
+    log.info { "Closing stream for path: $path" }
+    val metadata = get(path) ?: throw StreamExistsException()
+    streams[path] = InMemoryStream(
+      metadata = metadata.copy(closed = true, closedBy = producer),
+      messages = streams[path]?.messages ?: mutableListOf(),
+    )
+    log.info { "Closed stream for path: $path" }
+
+    // TODO: Notify pending long-polls that stream is closed
+
+    CloseResult(metadata.currentOffset)
+  }
+
+  override suspend fun append(
+    path: Path,
+    data: ByteArray,
+    producer: Producer?,
+    options: AppendOptions,
+  ): AppendResult {
+    if (data.isEmpty()) {
+      throw InvalidDataException("empty body not allowed")
+    }
+
+    val metadata = get(path) ?: throw StreamNotFoundException()
+    if (metadata.closed) {
+      if (producer != null && metadata.closedBy == producer) {
+        return AppendResult.StreamClosed(
+          offset = metadata.currentOffset,
+          duplicate = true,
+        )
+      }
+      return AppendResult.StreamClosed(offset = metadata.currentOffset)
+    }
+
+
     TODO("Not yet implemented")
   }
 

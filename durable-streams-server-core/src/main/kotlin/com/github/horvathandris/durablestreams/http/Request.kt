@@ -9,4 +9,6 @@ class Request(
   fun query(key: String): List<String>? =
     uri.query[key]
 
+  val path get() = uri.path
+
 }
