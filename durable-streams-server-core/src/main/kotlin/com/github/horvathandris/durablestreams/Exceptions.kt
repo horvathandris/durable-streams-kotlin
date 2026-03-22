@@ -45,3 +45,7 @@ class ProducerSeqGapException(
 class InvalidDataException(
   override val message: String,
 ) : DurableStreamsException(400, message)
+
+class ContentTypeMismatchException(
+  override val message: String = "content type mismatch",
+) : DurableStreamsException(400, message)

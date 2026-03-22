@@ -12,7 +12,7 @@ typealias Seq = Long
 
 data class StreamMetadata(
   val path: Path,
-  val contentType: String,
+  val contentType: ContentType,
   val currentOffset: Offset,
   val ttlSeconds: Long?,
   val expiresAt: Instant?,
@@ -31,7 +31,6 @@ fun StreamMetadata.isExpired(): Boolean {
 }
 
 fun StreamMetadata.configMatches(options: CreateOptions): Boolean =
-  // TODO: content type matching should be more involved
   contentType == options.contentType &&
   ttlSeconds == options.ttlSeconds &&
   expiresAt == options.expiresAt &&

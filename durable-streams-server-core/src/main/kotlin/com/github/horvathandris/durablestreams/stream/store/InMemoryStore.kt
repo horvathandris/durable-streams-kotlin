@@ -1,5 +1,6 @@
 package com.github.horvathandris.durablestreams.stream.store
 
+import com.github.horvathandris.durablestreams.ContentTypeMismatchException
 import com.github.horvathandris.durablestreams.InvalidDataException
 import com.github.horvathandris.durablestreams.StreamExistsException
 import com.github.horvathandris.durablestreams.StreamNotFoundException
@@ -107,6 +108,10 @@ class InMemoryStore : Store {
         )
       }
       return AppendResult.StreamClosed(offset = metadata.currentOffset)
+    }
+
+    if (metadata.contentType != options.contentType) {
+      throw ContentTypeMismatchException()
     }
 
 

@@ -3,6 +3,7 @@ package com.github.horvathandris.durablestreams.stream.store
 import com.github.horvathandris.durablestreams.InvalidHeaderException
 import com.github.horvathandris.durablestreams.http.Headers
 import com.github.horvathandris.durablestreams.http.Request
+import com.github.horvathandris.durablestreams.stream.ContentType
 import com.github.horvathandris.durablestreams.stream.Offset
 import com.github.horvathandris.durablestreams.stream.Producer
 import com.github.horvathandris.durablestreams.stream.Seq
@@ -15,7 +16,7 @@ typealias Path = String
  * Options for creating a stream.
  */
 class CreateOptions(
-    val contentType: String = "application/octet-stream",
+    val contentType: ContentType = ContentType.ApplicationOctetStream,
     val ttlSeconds: Long?,
     val expiresAt: Instant?,
     val initialData: ByteArray?,
@@ -35,9 +36,9 @@ class CreateOptions(
                 throw InvalidHeaderException("cannot specify both Stream-TTL and Stream-Expires-At")
             }
             val contentType = request.headers[Headers.Http.ContentType]
-                // TODO: need to remove the parameters from content-type
                 .firstOrNull()
-                ?: "application/octet-stream"
+                ?.let { ContentType.parseOrNull(it) ?: ContentType.ApplicationOctetStream }
+                ?: throw InvalidHeaderException("invalid Content-Type format")
             val ttlSeconds = ttlSecondsHeader?.let {
                 it.toLongOrNull() ?: throw InvalidHeaderException("invalid Stream-TTL format")
             }
@@ -73,7 +74,7 @@ data class CloseResult(
 
 data class AppendOptions(
     val seq: Seq,
-    val contentType: String,
+    val contentType: ContentType,
     val close: Boolean,
 ) {
     companion object {
