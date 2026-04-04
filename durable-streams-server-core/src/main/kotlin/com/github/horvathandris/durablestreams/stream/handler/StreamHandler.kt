@@ -22,7 +22,7 @@ class StreamHandler(
     val options = CreateOptions.fromRequest(request)
     val result = store.create(request.uri.path, options)
     val headers = Headers.builder()
-    headers[Headers.Http.ContentType] = result.metadata.contentType
+    headers[Headers.Http.ContentType] = result.metadata.contentType.toString()
     headers[Headers.Stream.NextOffset] = result.metadata.currentOffset.toString()
     if (result.metadata.closed) {
       headers[Headers.Stream.Closed] = "true"
@@ -48,7 +48,7 @@ class StreamHandler(
     val metadata = store.get(request.uri.path) ?: throw StreamNotFoundException()
 
     val headers = Headers.builder()
-    headers[Headers.Http.ContentType] = metadata.contentType
+    headers[Headers.Http.ContentType] = metadata.contentType.toString()
     headers[Headers.Stream.NextOffset] = metadata.currentOffset.toString()
     headers[Headers.Http.CacheControl] = "no-store"
     metadata.ttlSeconds?.let {

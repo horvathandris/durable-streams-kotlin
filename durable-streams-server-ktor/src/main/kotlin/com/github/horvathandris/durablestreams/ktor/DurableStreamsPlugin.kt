@@ -3,7 +3,6 @@ package com.github.horvathandris.durablestreams.ktor
 import com.github.horvathandris.durablestreams.http.Headers
 import com.github.horvathandris.durablestreams.http.Response
 import com.github.horvathandris.durablestreams.stream.handler.StreamHandler
-import com.github.horvathandris.durablestreams.stream.store.InMemoryStore
 import com.github.horvathandris.durablestreams.stream.store.Store
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
@@ -12,13 +11,18 @@ import io.ktor.server.request.httpMethod
 import io.ktor.server.response.header
 import io.ktor.server.routing.route
 
-class DurableStreamsPluginConfiguration {
-  val store: Store = InMemoryStore()
-}
+class DurableStreamsPluginConfiguration(
+  val store: Store,
+)
 
-val DurableStreamsPlugin = createRouteScopedPlugin(
+fun DurableStreamsPlugin(
+  store: Store,
+) = createRouteScopedPlugin(
   name = "DurableStreamsPlugin",
-  createConfiguration = ::DurableStreamsPluginConfiguration,
+  configurationPath = "durable-streams",
+  createConfiguration = {
+    DurableStreamsPluginConfiguration(store)
+  },
 ) {
   val handler = StreamHandler(pluginConfig.store)
 

@@ -4,6 +4,8 @@ import com.github.horvathandris.durablestreams.ContentTypeMismatchException
 import com.github.horvathandris.durablestreams.InvalidDataException
 import com.github.horvathandris.durablestreams.StreamExistsException
 import com.github.horvathandris.durablestreams.StreamNotFoundException
+import com.github.horvathandris.durablestreams.json.JsonSerializer
+import com.github.horvathandris.durablestreams.stream.ContentType
 import com.github.horvathandris.durablestreams.stream.Message
 import com.github.horvathandris.durablestreams.stream.Offset
 import com.github.horvathandris.durablestreams.stream.Producer
@@ -15,17 +17,14 @@ import kotlin.time.Clock
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-class InMemoryStore : Store {
+class InMemoryStore(
+  private val serializer: JsonSerializer,
+) : Store {
 
   private val log = KotlinLogging.logger {}
 
-  data class InMemoryStream(
-    val metadata: StreamMetadata,
-    val messages: List<Message> = mutableListOf(),
-  )
-
-  val mutex = Mutex()
-  val streams = mutableMapOf<String, InMemoryStream>()
+  private val mutex = Mutex()
+  private val streams = mutableMapOf<String, InMemoryStream>()
 
   override suspend fun create(
     path: Path,
@@ -114,8 +113,17 @@ class InMemoryStore : Store {
       throw ContentTypeMismatchException()
     }
 
+    if (options.contentType == ContentType.ApplicationJson) {
+      val isJsonArray = serializer.isArray(data)
+      println("is data json array: $isJsonArray")
+    }
 
     TODO("Not yet implemented")
   }
+
+  data class InMemoryStream(
+    val metadata: StreamMetadata,
+    val messages: List<Message> = mutableListOf(),
+  )
 
 }

@@ -8,6 +8,7 @@ data class ContentType(
   companion object {
 
     val ApplicationOctetStream = ContentType("application", "octet-stream")
+    val ApplicationJson = ContentType("application", "json")
 
     fun parseOrNull(value: String): ContentType? {
       val parts = value.trim()

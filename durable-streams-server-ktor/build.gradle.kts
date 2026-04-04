@@ -9,7 +9,8 @@ repositories {
 }
 
 dependencies {
-    implementation(project(":durable-streams-server-core"))
+    api(project(":durable-streams-server-core"))
+    implementation(project(":durable-streams-json-spi"))
 
     implementation(libs.ktor.server.core)
 

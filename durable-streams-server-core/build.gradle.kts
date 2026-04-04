@@ -9,6 +9,8 @@ repositories {
 }
 
 dependencies {
+    implementation(project(":durable-streams-json-spi"))
+
     implementation(libs.kotlinxCoroutines)
     implementation(libs.kotlin.logging)
 

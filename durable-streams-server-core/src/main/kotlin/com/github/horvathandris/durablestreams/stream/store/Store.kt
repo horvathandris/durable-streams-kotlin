@@ -40,7 +40,7 @@ class CreateOptions(
                 ?.let { ContentType.parseOrNull(it) ?: ContentType.ApplicationOctetStream }
                 ?: throw InvalidHeaderException("invalid Content-Type format")
             val ttlSeconds = ttlSecondsHeader?.let {
-                it.toLongOrNull() ?: throw InvalidHeaderException("invalid Stream-TTL format")
+                it.trim().toLongOrNull() ?: throw InvalidHeaderException("invalid Stream-TTL format")
             }
             val expiresAt = expiresAtHeader?.let {
                 Instant.parseOrNull(it) ?: throw InvalidHeaderException("invalid Stream-Expires-At format")
@@ -80,7 +80,21 @@ data class AppendOptions(
     companion object {
 
         fun fromRequest(request: Request): AppendOptions {
-            TODO()
+            val seq = request.headers[Headers.Stream.Seq]
+                .firstOrNull()
+                ?.trim()
+                ?.toLongOrNull()
+                ?: throw InvalidHeaderException("invalid Stream-Seq format")
+            val contentType = request.headers[Headers.Http.ContentType]
+                .firstOrNull()
+                ?.let { ContentType.parseOrNull(it) ?: ContentType.ApplicationOctetStream }
+                ?: throw InvalidHeaderException("invalid Content-Type format")
+            val closed = request.headers[Headers.Stream.Closed].firstOrNull() == "true"
+            return AppendOptions(
+                seq = seq,
+                contentType = contentType,
+                close = closed,
+            )
         }
 
     }
