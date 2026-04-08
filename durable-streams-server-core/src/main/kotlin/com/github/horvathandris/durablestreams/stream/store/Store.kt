@@ -107,7 +107,17 @@ sealed class AppendResult(
     class StreamClosed(
         offset: Offset,
         duplicate: Boolean = false,
-    ) : AppendResult(offset, duplicate)
+    ) : AppendResult(
+        offset = offset,
+        duplicate = duplicate,
+    )
+
+    class StreamAppended(
+        offset: Offset,
+    ) : AppendResult(
+        offset = offset,
+        duplicate = false,
+    )
 }
 
 /**

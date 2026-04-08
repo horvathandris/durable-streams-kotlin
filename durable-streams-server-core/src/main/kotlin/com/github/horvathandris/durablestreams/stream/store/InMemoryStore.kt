@@ -5,6 +5,7 @@ import com.github.horvathandris.durablestreams.InvalidDataException
 import com.github.horvathandris.durablestreams.StreamExistsException
 import com.github.horvathandris.durablestreams.StreamNotFoundException
 import com.github.horvathandris.durablestreams.json.JsonSerializer
+import com.github.horvathandris.durablestreams.json.deserialize
 import com.github.horvathandris.durablestreams.stream.ContentType
 import com.github.horvathandris.durablestreams.stream.Message
 import com.github.horvathandris.durablestreams.stream.Offset
@@ -98,7 +99,8 @@ class InMemoryStore(
       throw InvalidDataException("empty body not allowed")
     }
 
-    val metadata = get(path) ?: throw StreamNotFoundException()
+    val stream = streams[path] ?: throw StreamNotFoundException()
+    val metadata = stream.metadata
     if (metadata.closed) {
       if (producer != null && metadata.closedBy == producer) {
         return AppendResult.StreamClosed(
@@ -113,17 +115,37 @@ class InMemoryStore(
       throw ContentTypeMismatchException()
     }
 
-    if (options.contentType == ContentType.ApplicationJson) {
-      val isJsonArray = serializer.isArray(data)
-      println("is data json array: $isJsonArray")
+    val messages = if (
+      options.contentType == ContentType.ApplicationJson
+      && serializer.isArray(data)
+    ) {
+      serializer.deserialize(data)
+    } else {
+      listOf(data)
     }
 
-    TODO("Not yet implemented")
+    messages.forEach { stream.append(it) }
+
+    return AppendResult.StreamAppended(
+      offset = metadata.currentOffset,
+    )
   }
 
   data class InMemoryStream(
     val metadata: StreamMetadata,
-    val messages: List<Message> = mutableListOf(),
-  )
+    val messages: MutableList<Message> = mutableListOf(),
+  ) {
+
+    fun append(data: ByteArray) {
+      val newOffset = metadata.currentOffset + data.size
+      val message = Message(
+        data = data,
+        offset = newOffset,
+      )
+      messages.add(message)
+      metadata.currentOffset = newOffset
+    }
+
+  }
 
 }

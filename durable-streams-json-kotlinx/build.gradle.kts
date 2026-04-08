@@ -10,7 +10,7 @@ repositories {
 }
 
 dependencies {
-  api(project(":durable-streams-json-spi"))
+  api(project(":durable-streams-json-core"))
 
   implementation(libs.kotlinx.serialization.json)
 

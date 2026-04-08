@@ -20,6 +20,12 @@ data class Offset(
   override fun toString() =
     "%016d_%016d".format(readSeq, bytesOffset)
 
+  operator fun plus(bytesSize: Number) =
+    Offset(
+      readSeq = readSeq,
+      bytesOffset = bytesOffset + bytesSize.toLong(),
+    )
+
 }
 
 /**

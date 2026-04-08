@@ -9,7 +9,7 @@ repositories {
 }
 
 dependencies {
-    implementation(project(":durable-streams-json-spi"))
+    implementation(project(":durable-streams-json-core"))
 
     implementation(libs.kotlinxCoroutines)
     implementation(libs.kotlin.logging)

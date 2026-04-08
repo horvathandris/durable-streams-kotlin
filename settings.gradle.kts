@@ -7,7 +7,7 @@ dependencyResolutionManagement {
 
 rootProject.name = "durable-streams-kotlin"
 
-include("durable-streams-json-spi")
+include("durable-streams-json-core")
 include("durable-streams-json-kotlinx")
 include("durable-streams-server-core")
 include("durable-streams-server-ktor")

@@ -13,7 +13,7 @@ typealias Seq = Long
 data class StreamMetadata(
   val path: Path,
   val contentType: ContentType,
-  val currentOffset: Offset,
+  var currentOffset: Offset,
   val ttlSeconds: Long?,
   val expiresAt: Instant?,
   val createdAt: Instant,
