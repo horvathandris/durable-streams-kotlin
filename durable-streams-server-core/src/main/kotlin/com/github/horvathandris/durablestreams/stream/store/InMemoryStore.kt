@@ -14,6 +14,7 @@ import com.github.horvathandris.durablestreams.stream.StreamMetadata
 import com.github.horvathandris.durablestreams.stream.configMatches
 import com.github.horvathandris.durablestreams.stream.isExpired
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.github.oshai.kotlinlogging.coroutines.withLoggingContextAsync
 import kotlin.time.Clock
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -30,33 +31,44 @@ class InMemoryStore(
   override suspend fun create(
     path: Path,
     options: CreateOptions,
-  ): CreateResult = mutex.withLock {
-    log.info { "Creating stream for path: $path" }
-    streams[path]?.let { existing ->
-      when {
-        existing.metadata.isExpired() -> streams.remove(path)
-        existing.metadata.configMatches(options) ->
-          return@withLock CreateResult(existing.metadata, newlyCreated = false)
-        else -> throw StreamExistsException()
+  ): CreateResult = withLoggingContextAsync(
+    "stream.path" to path,
+  ) {
+    mutex.withLock {
+      log.info { "Creating stream" }
+      streams[path]?.let { existing ->
+        when {
+          existing.metadata.isExpired() -> streams.remove(path)
+          existing.metadata.configMatches(options) ->
+            return@withLock CreateResult(existing.metadata, newlyCreated = false)
+          else -> throw StreamExistsException()
+        }
       }
+
+      val metadata = StreamMetadata(
+        path = path,
+        contentType = options.contentType,
+        currentOffset = Offset.Zero,
+        ttlSeconds = options.ttlSeconds,
+        expiresAt = options.expiresAt,
+        createdAt = Clock.System.now(),
+        closed = options.closed,
+      )
+
+      val stream = InMemoryStream(metadata)
+      options.initialData?.let {
+        stream.append(
+          data = options.initialData,
+          serializer = serializer,
+          allowEmpty = true,
+        )
+        log.info { "Appended initial data to stream" }
+      }
+      streams[path] = stream
+
+      log.info { "Created stream" }
+      CreateResult(metadata, newlyCreated = true)
     }
-
-    val metadata = StreamMetadata(
-      path = path,
-      contentType = options.contentType,
-      currentOffset = Offset.Zero,
-      ttlSeconds = options.ttlSeconds,
-      expiresAt = options.expiresAt,
-      createdAt = Clock.System.now(),
-      closed = options.closed,
-    )
-
-    streams[path] = InMemoryStream(metadata)
-
-    // TODO: handle initial data
-
-    log.info { "Created stream for path: $path" }
-    CreateResult(metadata, newlyCreated = true)
   }
 
   override fun get(path: Path): StreamMetadata? =
@@ -67,26 +79,34 @@ class InMemoryStore(
   override fun has(path: Path): Boolean =
     get(path) != null
 
-  override suspend fun delete(path: Path): Unit = mutex.withLock {
-    log.info { "Deleting stream for path: $path" }
-    streams.remove(path) ?: throw StreamNotFoundException()
+  override suspend fun delete(path: Path): Unit = withLoggingContextAsync(
+    "stream.path" to path,
+  ) {
+    mutex.withLock {
+      log.info { "Deleting stream" }
+      streams.remove(path) ?: throw StreamNotFoundException()
+    }
   }
 
   override suspend fun close(
     path: Path,
     producer: Producer?,
-  ): CloseResult = mutex.withLock {
-    log.info { "Closing stream for path: $path" }
-    val metadata = get(path) ?: throw StreamExistsException()
-    streams[path] = InMemoryStream(
-      metadata = metadata.copy(closed = true, closedBy = producer),
-      messages = streams[path]?.messages ?: mutableListOf(),
-    )
-    log.info { "Closed stream for path: $path" }
+  ): CloseResult = withLoggingContextAsync(
+    "stream.path" to path,
+  ) {
+    mutex.withLock {
+      log.info { "Closing stream" }
+      val metadata = get(path) ?: throw StreamExistsException()
+      streams[path] = InMemoryStream(
+        metadata = metadata.copy(closed = true, closedBy = producer),
+        messages = streams[path]?.messages ?: mutableListOf(),
+      )
+      log.info { "Closed stream" }
 
-    // TODO: Notify pending long-polls that stream is closed
+      // TODO: Notify pending long-polls that stream is closed
 
-    CloseResult(metadata.currentOffset)
+      CloseResult(metadata.currentOffset)
+    }
   }
 
   override suspend fun append(
@@ -115,16 +135,7 @@ class InMemoryStore(
       throw ContentTypeMismatchException()
     }
 
-    val messages = if (
-      options.contentType == ContentType.ApplicationJson
-      && serializer.isArray(data)
-    ) {
-      serializer.deserialize(data)
-    } else {
-      listOf(data)
-    }
-
-    messages.forEach { stream.append(it) }
+    stream.append(data, serializer)
 
     return AppendResult.StreamAppended(
       offset = metadata.currentOffset,
@@ -136,7 +147,29 @@ class InMemoryStore(
     val messages: MutableList<Message> = mutableListOf(),
   ) {
 
-    fun append(data: ByteArray) {
+    fun append(
+      data: ByteArray,
+      serializer: JsonSerializer,
+      allowEmpty: Boolean = false,
+    ) {
+      val dataArray = if (
+        metadata.contentType == ContentType.ApplicationJson
+        && serializer.isArray(data)
+      ) {
+        serializer.deserialize<List<ByteArray>>(data)
+          .apply {
+            if (!allowEmpty && isEmpty()) {
+              throw InvalidDataException("empty JSON array not allowed")
+            }
+          }
+      } else {
+        listOf(data)
+      }
+
+      dataArray.forEach { this.append(it) }
+    }
+
+    private fun append(data: ByteArray) {
       val newOffset = metadata.currentOffset + data.size
       val message = Message(
         data = data,

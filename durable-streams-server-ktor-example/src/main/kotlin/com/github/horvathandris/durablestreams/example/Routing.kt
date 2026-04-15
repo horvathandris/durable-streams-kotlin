@@ -13,9 +13,9 @@ fun Application.configureRouting() {
       install(
         DurableStreamsPlugin(
           store = InMemoryStore(
-          serializer = KotlinxJsonSerializer(),
+            serializer = KotlinxJsonSerializer(),
           ),
-        )
+        ),
       )
     }
   }
